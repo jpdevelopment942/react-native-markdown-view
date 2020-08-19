@@ -1,37 +1,39 @@
 /* @flow */
 
-import React from 'react'
+import React from 'react';
+import { Image, Platform, Text, TextInput, View , TouchableOpacity} from 'react-native';
+import { Cell, Grid, Row } from 'react-native-tabular-grid-markdown-view';
+import { connect } from 'react-redux';
+import { hideDotsMenu } from '../../src/actions/ticket';
+import type { EmptyNode, HeadingNode, ImageNode, InlineContentNode, LinkNode, ListNode, OutputFunction, RenderState, RenderStyles, TableNode } from './types';
 
-import {
-  Image,
-  Text,
-  View,
-} from 'react-native'
+const CustomTextField = (props) => {
 
-import {
-  Cell,
-  Grid,
-  Row,
-} from 'react-native-tabular-grid-markdown-view'
-
-import type {
-  EmptyNode,
-  HeadingNode,
-  ImageNode,
-  InlineContentNode,
-  LinkNode,
-  ListNode,
-  TableNode,
-  OutputFunction,
-  RenderState,
-  RenderStyles,
-} from './types'
+  if (Platform.OS == 'android') {
+    return <Text {...props} selectable={true} />
+  }
+  return (
+    <TextInput
+      {...props}
+      multiline={true}
+      editable={false}
+      scrollEnabled={false}
+      onTouchStart={()=>{
+        props && props.hideDotsMenu && props.hideDotsMenu()
+      }}
+    />
+  )
+}
+const mapDispatchToProps = dispatch => ({
+  hideDotsMenu: () => dispatch(hideDotsMenu())
+});
+const TextField = connect(null, mapDispatchToProps)(CustomTextField);
 
 function renderImage(node: ImageNode, output: OutputFunction, state: RenderState, styles: RenderStyles) {
-  const {imageWrapper: wrapperStyle, image: imageStyle} = styles
+  const { imageWrapper: wrapperStyle, image: imageStyle } = styles
   return (
-    <View key={state.key} style={node.width || node.height ? [wrapperStyle, paddedSize(node, wrapperStyle)] : wrapperStyle}>
-      <Image source={{uri: node.target}} style={imageStyle}/>
+    <View key={state.key} style={node.width && node.height ? [wrapperStyle, paddedSize(node, wrapperStyle)] : wrapperStyle}>
+      <Image source={{ uri: node.target }} style={imageStyle} />
     </View>
   )
 }
@@ -70,9 +72,9 @@ function renderTableCell(cell, row, column, rowCount, columnCount, output, state
   }
 
   return <Cell rowId={row} id={column} key={column} style={cellStyle}>
-    <Text style={contentStyle}>
+    <TextField style={contentStyle}>
       {output(cell, state)}
-    </Text>
+    </TextField>
   </Cell>
 }
 
@@ -81,7 +83,7 @@ function paragraphRenderer() {
 
   return (node: InlineContentNode, output: OutputFunction, state: RenderState, styles: RenderStyles) => {
     if (node.content instanceof Array && node.content.length === 1 && node.content[0].type === 'image') {
-      const imageNode : ImageNode = node.content[0]
+      const imageNode: ImageNode = node.content[0]
       return renderImage(imageNode, output, state, styles)
     } else {
       return renderText(node, output, state, styles)
@@ -91,9 +93,9 @@ function paragraphRenderer() {
 
 function textContentRenderer(styleName, styleName2) {
   return (node: InlineContentNode, output: OutputFunction, state: RenderState, styles: RenderStyles) => (
-    <Text key={state.key} style={styleName2 ? [styles[styleName], styles[styleName2]] : styles[styleName]}>
+    <TextField key={state.key} style={styleName2 ? [styles[styleName], styles[styleName2]] : styles[styleName]}>
       {typeof node.content === 'string' ? node.content : output(node.content, state)}
-    </Text>
+    </TextField>
   )
 }
 
@@ -119,9 +121,9 @@ function paddedSize(size, style) {
 export default Object.freeze({
   blockQuote: textContentRenderer('blockQuote'),
   br: (node: EmptyNode, output: OutputFunction, state: RenderState, styles: RenderStyles) => (
-    <Text key={state.key} style={styles.br}>
+    <TextField key={state.key} style={styles.br}>
       {'\n\n'}
-    </Text>
+    </TextField>
   ),
   codeBlock: textContentRenderer('codeBlock'),
   del: textContentRenderer('del'),
@@ -130,15 +132,15 @@ export default Object.freeze({
     textContentRenderer('heading', 'heading' + node.level)(node, output, state, styles)
   ),
   hr: (node: EmptyNode, output: OutputFunction, state: RenderState, styles: RenderStyles) => (
-    <View key={state.key} style={styles.hr}/>
+    <View key={state.key} style={styles.hr} />
   ),
   image: renderImage,
   inlineCode: textContentRenderer('inlineCode'),
   link: (node: LinkNode, output: OutputFunction, state: RenderState, styles: RenderStyles) => {
     const onPress = state.onLinkPress
-    return <Text key={state.key} style={styles.link} onPress={onPress ? () => onPress(node.target) : null}>
+    return <TextField key={state.key} style={styles.link} onPress={onPress ? () => onPress(node.target) : null}>
       {typeof node.content === 'string' ? node.content : output(node.content, state)}
-    </Text>
+    </TextField>
   },
   list: (node: ListNode, output: OutputFunction, state: RenderState, styles: RenderStyles) => (
     <View key={state.key} style={styles.list}>
@@ -146,23 +148,23 @@ export default Object.freeze({
         <View key={i} style={styles.listItem}>
           {
             node.ordered ?
-              <Text style={styles.listItemNumber}>{`${i + 1}.`}</Text>
+              <TextField style={styles.listItemNumber}>{`${i + 1}.`}</TextField>
               :
-              <Text style={styles.listItemBullet}>
+              <TextField style={styles.listItemBullet}>
                 {styles.listItemBullet && styles.listItemBullet.content ? styles.listItemBullet.content : '\u2022'}
-              </Text>
+              </TextField>
           }
-          <Text style={node.ordered ? styles.listItemOrderedContent : styles.listItemUnorderedContent}>
+          <TextField style={node.ordered ? styles.listItemOrderedContent : styles.listItemUnorderedContent}>
             {output(item, state)}
-          </Text>
+          </TextField>
         </View>
       ))}
     </View>
   ),
   newline: (node: EmptyNode, output: OutputFunction, state: RenderState, styles: RenderStyles) => (
-    <Text key={state.key} style={styles.newline}>
+    <TextField key={state.key} style={styles.newline}>
       {'\n'}
-    </Text>
+    </TextField>
   ),
   paragraph: paragraphRenderer(),
   strong: textContentRenderer('strong'),
